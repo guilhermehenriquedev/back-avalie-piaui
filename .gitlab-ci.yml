@@ -1,0 +1,40 @@
+stages:
+  - deploy
+
+deploy to dev:
+  stage: deploy
+  image: registry.etipi.pi.gov.br/ubuntu:22.04
+  before_script:
+    - echo "[CI] Instalando openssh-client e sshpass..."
+    - apt-get update -y && apt-get install openssh-client sshpass -y
+  script:
+    - echo "[CI] Buildando aplicação..."
+    - sshpass -p "$SSH_PASSWORD" ssh -o "StrictHostKeyChecking=no" ${SSH_USER}@${SERVER_DEV_IP} \
+      "
+        cd avalie;
+        git pull;
+        docker-compose -f docker-compose.dev.yml up --build -d avalie-api;
+        echo \"y\" | docker system prune -a;
+      "
+  after_script:
+    - echo "[CI] Finalizando..."
+
+deploy to prod:
+  stage: deploy
+  image: registry.etipi.pi.gov.br/ubuntu:22.04
+  when: manual
+  before_script:
+    - echo "[CI] Instalando openssh-client e sshpass..."
+    - apt-get update -y && apt-get install openssh-client sshpass -y
+  script:
+    - echo "[CI] Buildando aplicação..."
+    - sshpass -p "$SSH_PASSWORD" ssh -o "StrictHostKeyChecking=no" ${SSH_USER}@${SERVER_IP} \
+      "
+        cd avalie;
+        git pull;
+        docker-compose up --build -d avalie-api;
+        echo \"y\" | docker system prune -a;
+      "
+  after_script:
+    - echo "[CI] Finalizando..."
+

@@ -1,0 +1,53 @@
+version: '3.1'
+
+services:
+  avalie-db:
+    container_name: avalie-db
+    image: mysql:8.0
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    ports:
+      - 3306:3306
+    environment:
+      MYSQL_DATABASE: avalie
+      MYSQL_ROOT_PASSWORD: 88343806
+    volumes:
+      - mysql-volume:/var/lib/mysql
+    networks:
+      - api-net
+
+  avalie-api:
+    container_name: avalie-api
+    env_file: .env
+    restart: unless-stopped
+    build:
+      context: .
+    ports: 
+      - '8000:8000'
+    depends_on:
+      - avalie-db
+    networks:
+      - api-net
+
+  api-nginx:
+    container_name: api-nginx
+    image: jonasal/nginx-certbot:4.3.0
+    restart: unless-stopped
+    env_file:
+      - ./nginx-certbot.env
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - ./nginx:/etc/nginx/user_conf.d
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    networks:
+      - api-net
+
+volumes:
+  mysql-volume:
+
+networks:
+  api-net:
+    driver: bridge
